@@ -26,6 +26,6 @@ module top (
     end
     
     // Output assignment
-    assign led = led_pattern;
+    assign led = ~led_pattern;
 
 endmodule

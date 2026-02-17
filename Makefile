@@ -31,14 +31,46 @@ all: $(BITSTREAM)
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
-# Synthesis
-$(SYNTH_JSON): $(VERILOG_SRC) | $(BUILD_DIR)
+
+# ---- Source Detection ----
+VERILOG_SRC := $(wildcard $(SRC_DIR)/*.v)
+VHDL_SRC    := $(wildcard $(SRC_DIR)/*.vhd) $(wildcard $(SRC_DIR)/*.vhdl)
+
+HAS_VERILOG := $(strip $(VERILOG_SRC))
+HAS_VHDL    := $(strip $(VHDL_SRC))
+
+# ---- Synthesis ----
+$(SYNTH_JSON): $(VERILOG_SRC) $(VHDL_SRC) | $(BUILD_DIR)
+
+# No source files
+ifeq ($(HAS_VERILOG)$(HAS_VHDL),)
+	$(error No source files found in $(SRC_DIR)/. Add .v, .vhd, or .vhdl files)
+endif
+
+# Both present — not supported
+ifneq ($(HAS_VERILOG),)
+ifneq ($(HAS_VHDL),)
+	$(error Mixed Verilog and VHDL not supported. Use only one language in $(SRC_DIR)/)
+endif
+endif
+
 	@echo "→ Synthesizing design..."
+
+# VHDL
+ifneq ($(HAS_VHDL),)
+	$(YOSYS) -m ghdl -p "ghdl $(VHDL_SRC) -e $(TOP_MODULE); \
+	            synth_gowin -top $(TOP_MODULE) -json $@"
+
+# Verilog
+else
 	$(YOSYS) -p "read_verilog $(VERILOG_SRC); \
 	            synth_gowin -top $(TOP_MODULE) -json $@"
+endif
+
 	@echo "✓ Synthesis complete"
 
 synth: $(SYNTH_JSON)
+
 
 # Place and Route
 $(PNR_JSON): $(SYNTH_JSON) $(CONSTRAINT_FILE)

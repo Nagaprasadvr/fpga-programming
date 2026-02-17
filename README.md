@@ -28,11 +28,11 @@ This flow avoids vendor IDEs entirely and enables **scriptable, reproducible, CI
 .
 ├── Makefile
 ├── src/
-│   └── top.v
+│   ├── top.v       # Supports Verilog source or VHDL source (.vdl / .vhdl) but not both
 ├── constraints/
 │   └── tangnano9k.cst
 ├── sim/
-│   └── top_tb.v      # optional
+│   └── top_tb.v       # optional
 └── build/
 ```
 
@@ -181,22 +181,83 @@ CONSTRAINT_FILE = constraints/tangnano9k.cst
 
 ## Example: Blinky
 
+### Verilog
+
 Minimal LED blinker example:
 
 ```verilog
-module top(
-    input  wire clk,
-    output wire led
+module top (
+    input  wire clk,        // 27 MHz clock input
+    output wire [5:0] led   // 6 LED outputs
 );
 
-    reg [23:0] cnt = 0;
-
-    always @(posedge clk)
-        cnt <= cnt + 1;
-
-    assign led = cnt[23];
+    // Counter for timing
+    // 27MHz / 27M = 1 Hz blink rate
+    reg [24:0] counter = 0;
+    
+    // LED pattern register
+    reg [5:0] led_pattern = 6'b000001;
+    
+    // Counter logic
+    always @(posedge clk) begin
+        counter <= counter + 1;
+        
+        // Every ~0.5 seconds, shift LED pattern
+        if (counter == 25'd13_500_000) begin
+            counter <= 0;
+            // Rotate pattern left with wrap
+            led_pattern <= {led_pattern[4:0], led_pattern[5]};
+        end
+    end
+    
+    // Output assignment
+    assign led = ~led_pattern;
 
 endmodule
+```
+
+### VHDL
+
+```vhdl
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+
+entity top is
+  port (
+    clk : in std_logic; -- 27 MHz clock input
+    led : out std_logic_vector(5 downto 0) -- 6 LED outputs
+  );
+end entity top;
+
+architecture rtl of top is
+  -- Counter for timing
+  -- 27MHz / 13.5M = ~0.5s per shift
+  signal counter : unsigned(24 downto 0) := (others => '0');
+
+  -- LED pattern register
+  signal led_pattern : std_logic_vector(5 downto 0) := "000001";
+begin
+
+  -- Counter and shift logic
+  process (clk)
+  begin
+    if rising_edge(clk) then
+      counter <= counter + 1;
+
+      -- Every ~0.5 seconds, shift LED pattern
+      if counter = to_unsigned(13_500_000, 25) then
+        counter <= (others => '0');
+        -- Rotate pattern left with wrap
+        led_pattern <= led_pattern(4 downto 0) & led_pattern(5);
+      end if;
+    end if;
+  end process;
+
+  -- Output assignment
+  led <= led_pattern;
+
+end architecture rtl;
 ```
 
 ---
