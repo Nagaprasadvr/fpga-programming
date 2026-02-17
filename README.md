@@ -51,9 +51,9 @@ Install the **OSS CAD Suite**, which includes:
 
 ```bash
 cd ~
-wget https://github.com/YosysHQ/oss-cad-suite-build/releases/latest/download/oss-cad-suite-linux-x64.tgz
-tar -xzf oss-cad-suite-linux-x64.tgz
-mv oss-cad-suite-linux-x64 oss-cad-suite
+wget https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-02-16/oss-cad-suite-linux-x64-20260216.tgz
+tar -xzf oss-cad-suite-linux-x64-20260216.tgz
+mv oss-cad-suite-linux-x64-20260216 oss-cad-suite
 ```
 
 Add to PATH:
